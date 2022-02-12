@@ -6,15 +6,15 @@
 
 ### TCP/IP overview
 
-![The TCP:IP Stack of Protocols](/Users/zyt/Documents/zyt-uk/term2/comp55-CS2/image/The TCP:IP Stack of Protocols.png)
+![The TCP:IP Stack of Protocols](image/The TCP:IP Stack of Protocols.png)
 
-![TCP:IP image](/Users/zyt/Documents/zyt-uk/term2/comp55-CS2/image/TCP:IP image.png)
+![TCP:IP image](image/TCP:IP image.png)
 
 ### IPv4 overview
 
 #### IPv4数据包格式
 
-![IPv4 packet](/Users/zyt/Documents/zyt-uk/term2/comp55-CS2/image/IPv4 packet.png)
+![IPv4 packet](image/IPv4 packet.png)
 
 #### Traceroute
 
@@ -101,13 +101,13 @@ BGP advertisements are not authenticated so can be spoofed, resulting in route h
 
   直接加在源数据包中间。不支持NAT：因为如果采用 Transport 连接一端是网关的时候，网关有 NAT 功能，会将地址变换，而Transport Mode是只识别原 IP 的，这样就会被直接丢弃掉。
 
-  ![Transport Mode](/Users/zyt/Documents/zyt-uk/term2/comp55-CS2/image/Transport Mode.png)
+  ![Transport Mode](image/Transport Mode.png)
 
 * Tunnel Mode
 
   在源数据包外新建一个数据包头，可以隐藏源IP地址。
 
-  ![Tunnel Mode](/Users/zyt/Documents/zyt-uk/term2/comp55-CS2/image/Tunnel Mode.png)
+  ![Tunnel Mode](image/Tunnel Mode.png)
 
 ### IPv6
 
