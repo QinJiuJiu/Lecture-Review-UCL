@@ -130,6 +130,197 @@ IPv6 addresses are 128 bits long
 
 ## Week 2
 
+### UDP(User Datagram Protocol )
 
+在IP上增加了端口号（port number），通常丢几个包不要紧，所以用来传输视频或语音。
+
+**使用UDP传输的协议**
+
+* Domain Name System (DNS, port 53)
+
+  但是DNS查询超过512字节的时候，使用TCP传输，因为TCP可以分fragment传输。
+
+* Dynamic Host Configuration Protocol (DHCP, ports 67, 68)
+
+* Hypertext Transport Protocol HTTP/3 (port 443) 
+
+  因为这个使用了额外的QUIC保障传输
+
+* µTP (BitTorrent, multiple ports) 
+
+  网络超载时会自行降低速度
+
+**UDP spoofing**
+
+local network：UDP spoofing / hijacking（攻击者网络嗅探到request包，然后在服务器发送UDP数据包之前发送伪造的UDP reply 数据包到目标）
+
+remote target：blind UDP spoofing（看不到content，猜测request在什么时候）
+
+**UDP portscan**
+
+发送空的UDP数据包到每个端口，如果端口没开放，会返回ICMP。用这种方法来猜测应用程序可能在哪些端口上运行。
+
+<font color='green'>【应对portscan】</font>：一些操作系统限制发送ICMP包的频率
+
+Sweeping：扫描多个hosts的某个相同的端口（for example to see which hosts on a network are running a webserver）
+
+### TCP
+
+面向连接的服务，不会丢包，网络拥堵时自动降速，correct ordering segments
+
+source port is randomly picked by the client, destination port is the one the target service is listening on.
+
+**使用TCP传输的协议**
+
+* Hypertext Transport Protocol HTTP/0,1,2 (port 80)，HTTPS port 443
+
+*  Telnet – port 23, Rlogin – port 513（source port）
+
+  不加密的远程连接到别的电脑上
+
+* Secure Shell (SSH) – port 22
+
+  加密连接
+
+* Simple Mail Transfer Protocol (SMTP) – port 25
+
+  邮件系统
+
+* Internet Message Access Protocol (IMAP) – port 143
+
+  Use for clients to access a mailbox stored on a mail server
+
+**TCP 数据包解析**
+
+* Sequence number：每个segment的位置
+* Acknowledgement number：最后一个数据包的位置
+* Window: 只接受在window范围内的segments
+* Checksum：数据包完整性
+* flags
+  * SYN：请求连接，想要得到ack回复
+  * ACK：确认收到了segment
+  * FIN：请求关闭连接（不强制）
+  * RST：强制关闭连接
+  * PSH：requests to pass the data stream to the user level (program) as soon as possible
+  * URG：data is urgent
+
+**SET UP TCP connections**
+
+![Set up TCP connection](image/Set up TCP connection.png)
+
+**TRANSFER TCP data**
+
+![Transfer TCP data](image/Transfer TCP data.png)
+
+**CLOSE TCP connection**
+
+![Close TCP connection](image/Close TCP connection.png)
+
+### TCP Security
+
+**TCP spoofing**：sequence number使得TCP spoofing变得困难。
+
+sequence number不能太随机：Purely random sequence numbers is ideal for security, but could lead to confusion if two connections end up with sequence numbers that are close to each other.
+
+**TCP Hijacking**：攻击者向server发送数据包，server向用户发送ack数据包，但是sequence number没有办法对应上，an infinite loop of segments is generated – ACK storm。某种情况下丢包了会使网络重新安静下来，但攻击者可以继续发送数据包，造成下一次ACK storm。
+
+⚠️original Linux TCP implementation中TCP数据包在某个范围区间都会被接纳——blind RST attacks and data injection attacks。RFC 5961 reduces the window of acceptable segments，如果数据包不在这个区间，会发送一个challenge ACK。攻击者可以利用这些实现测信道攻击以猜测sequence number。
+
+**TCP portscan类型**
+
+* connect() scan：三次握手建立完整连接
+
+  if the handshake is successful the port is open
+
+* SYN scan：半开放连接，发送 SYN
+
+  open：SYN + ACK segment
+
+  close：RST
+
+* FIN scan：发送FIN
+
+  open：ignore
+
+  close：RST
+
+* XMAS scan：segments with FIN, PSH, URG flags set
+
+*   Null scan：segments with no flags are sent
+
+* **Idle scanning（利用第三方实现攻击，更加隐蔽）**
+
+  Step 1: 攻击者发送SYN+ACK，获得idle的ipid1（RST包，因为僵尸主机发现非法响应，所以发送RST数据包）
+
+  Step 2: 攻击者发送SYN到目标地址（假冒idle发的）
+
+  Step 3: 攻击者发送SYN+ACK，获得idle的ipid2
+
+  open：ipid2=ipid1+2
+
+  close：ipid2=ipid1+1
+
+同时，扫描还能获得一些其他的信息（week2 PPT page.68）
+
+**Initial sequence numbers的随机性质**
+
+生成算法，每段时间rekey，保证前十五位不会相同，只有后十五位是真随机
+
+![initial sequence number](/Users/zyt/Documents/zyt-uk/term2/comp55-CS2/image/initial sequence number.png)
+
+### DNS and TLS security
+
+**DNS**
+
+用来匹配域名和具体ip地址
+
+两种DNS servers：
+
+* Recursive servers
+* Authoritative servers：存了IP-domain的映射
+
+The DNS system is organized as a hierarchical tree: root servers → top level domain servers → second level domain servers etc.
+
+![DNS graph](image/DNS graph.png)
+
+大多数情况下，root server会接受太多请求，可能会有网络用塞。所以设置cache存储一些records（在recursive serves上，一次请求会返回请求对DNS地址，同时还会返回其他一些DNS地址，下次请求会直接在这些地址里找），就不用request整个DNS层次，同时还能确保安全（因为顶层server看不见用户的请求信息）。
+
+**DNS 安全性**
+
+<font color='red'>【存在问题1】</font>
+
+DNS基于UDP，所以也可能遭受UDP相关的攻击。eg. spoof DNS reply可以将其他domain redirect到自己的IP address上。
+
+<font color='green'>【解决方案1】</font>
+
+DNS requests include a 16-bit ID that identifies them （对local network没用，但是对remote network有用）
+
+<font color='red'>【存在问题2】</font>
+
+cache poisoning：在cache里存储相关DNS record时，不检查这个reponse的来源。攻击者可以植入假的DNS record。
+
+<font color='green'>【解决方案1】</font>
+
+DNS clients must ensure that DNS responses are relative to the domain that they queried.
+
+**Kaminsky漏洞**：攻击者向Recursive servers发送不存在域的DNS查询，然后，解析程序将查询转发到Authoritative servers，以获取错误domain的IP地址。此时，攻击者向Recursive servers注入了大量伪造的响应，希望这些伪造之一与原始查询的16-bit ID相匹配。如果攻击成功，则攻击者已使用伪造IP地址毒害了Recursive servers的DNS缓存。直到TTL为止，请求这一domain的人都将获得伪造的IP地址。
+
+能成功的原因：birthday paradox（If a random function yields results in a range H with equal probability, after 1.25 $\sqrt𝐻$ elements there is a 50% chance that two of the previously observed elements were the same）
 
 DNS参考链接：https://zhuanlan.zhihu.com/p/144183767
+
+**DNS 安全措施**
+
+* 随机source port
+* 随机域名的大小写
+* DNSSEC 加密验证
+
+****
+
+**TLS**
+
+用公钥加密进行验证，用certificate商订一个对称加密密钥。
+
+Advantage：prevents spoofing and hijacking，因为密钥只能用私钥解密。
+
+Disadvantage：如果certificates没有验证的话很容易遭到MITM攻击；攻击者可以在browser中插入假的CA certificate。
