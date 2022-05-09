@@ -511,3 +511,311 @@ Side Channel Attacks：攻击者会观察信息，并基于此做出推断。受
 ### 7.2 Timing Attacks
 
 通过观察不同的执行时间长度，可以（概率地）推断出代码执行的路径。
+
+**Classic RSA timing attack**
+
+![RSA timing attack](image/RSA timing attack.png)
+
+但是第二种算法可以根据运行时间推断出前几位是一样的，然后继续根据运行时间猜测最后的密码。
+
+ref. http://www.tanglei.name/blog/rsa-and-timing-attack.html
+
+防御：Make everything execute in the same amount of time ；限制猜测密码次数
+
+### 7.3 Power analysis attacks
+
+通过观察不同的功耗趋势，可以（概率地）推断代码执行的路径。
+
+电路中电压的微小变化都能在示波器中显示，通过查看当前轨迹的形状，可以推断出所使用的功率和计算路径。
+
+防御：Add random noise to computation；Use a UPS；Limit physical access
+
+### 7.4 Meltdown/Spectre
+
+Idea：cpu被优化为可以快速运行。在运行时检查权限，可能是在某些内容处理或存储在缓存中之后。可以欺骗缓存，使其通过缓存计时侧通道向您提供有关其内容的信息。
+
+Cache side channel：缓存的数据比未缓存的数据获取速度更快。可以根据访问时间确定特定缓存中是否存在缓存地址。
+
+**Flush:** Force flush of cache (running clflush)
+
+Wait for victim to run process that stores the information from memory in cache.
+
+**Reload:** Try to reload the data. See how long it takes.
+
+• A long time? — cache miss. the victim didn’t access the data.
+
+• A short time? — cache hit. the victim accessed the data.
+
+**Meltdown**
+
+因为CPU可以同时执行多个指令（乱序执行）
+
+每个阶段执行的操作如下：
+
+1）获取指令，解码后存放到执行缓冲区Reservations Stations
+
+2）乱序执行指令，结果保存在一个结果序列中
+
+3）退休期Retired Circle，重新排列结果序列及安全检查（如地址访问的权限检查），提交结果到寄存器
+
+meltdown payload：
+
+![meltdown](image/meltdown.png)
+
+Meltdown漏洞的利用过程有4个步骤：
+
+1) 指令获取解码
+
+2) 乱序执行3条指令，指令2和指令3要等指令1中的读取内存地址的内容完成后才开始执行，指令3会将要访问的rbx数组元素所在的页加载到CPU Cache中。
+
+3) 对上一步的结果进行重新排列，对1-3条指令进行安全检测，发现访问违例，会丢弃当前执行的所有结果，恢复CPU状态到乱序执行之前的状态，但是并不会恢复CPU Cache的状态
+
+4) 通过缓存测信道攻击，可以知道哪一个数组元素被访问过，也即对应的内存页存放在CPU Cache中，从而推测出内核地址的内容
+
+**Spectre**
+
+当CPU发现分支预测错误时会丢弃分支执行的结果，恢复CPU的状态，但是不会恢复CPU Cache的状态，利用这一点可以突破进程间的访问限制（如浏览器沙箱）获取其他进程的数据。
+
+具体攻击过程可以分为三个阶段：
+
+1) 训练CPU的分支预测单元使其在运行利用代码时会进行特定的预测执行
+
+2) 预测执行使得CPU将要访问的地址的内容读取到CPU Cache中
+
+3) 通过缓存测信道攻击，可以知道哪一个数组元素被访问过，也即对应的内存页存放在CPU Cache中，从而推测出地址的内容。
+
+防御Meltdown/Spectre：分区过程和特权执行；限制的使用刷新；限制分支预测
+
+## Lecture 8 Mobile（guest lecture）
+
+### 8.1 PLATFORM SECURITY
+
+**Mobile OSes：**
+
+优点：改变环境权限；更好的权限分离；OS负责高级信息/资源
+
+缺点：访问控制策略需要用户的输入（**Least Privilege App Policy**）
+
+![ios vs android](image/ios vs android.png)
+
+****
+
+**iOS Sandbox Policy**
+
+因为沙盒的存在，应用程序只能读写自己沙盒的文件，不能访问其他应用程序的沙盒，不能进行程序间通信
+
+ref. https://www.jianshu.com/p/a7e0f799ea0a
+
+![ios access addr book](image/ios access addr book.png)
+
+**Abusing the Address Book Privacy Setting**
+
+* Apps directly access address book file
+* System (tccd) grants sandbox extension
+* Sandbox allows access to file path
+
+**jailbreak **越狱
+
+https://www.jianshu.com/p/c5c22f9a06e2
+
+****
+
+**Android Middleware**
+
+access control会有漏洞，middleware是内联的
+
+![android middleware](image/android middleware.png)
+
+![android deputy](image/android deputy.png)
+
+这边内容没啥好总结但，看看PPT就行，就是一些移动端攻击和防御简介
+
+## Lecture 9 Banking
+
+### 9.1 Clark-Wilson Model
+
+Integrity is defined as a set of constraints: Can check that the data is consistent with those constraints. 
+
+四种实体：
+
+CDIs: Constraint Data Items 只能由TP操纵。
+
+* The valid objects subject to the systems controls. 
+
+UDIs: Unconstraint Data Items 用户可以通过简单的读写操作进行操纵。
+
+* Objects not subject to integrity controls. 
+
+IVPs: Integrity Verification Procedures 检查CDI与外部现实的一致性。
+
+* Used to check that CDIs are subject to the constraints. 
+
+TPs: Transaction Procedures 可编程的抽象操作，如读、写和更改。
+
+* Take CDI from one valid state to another valid state.
+
+ref. https://blog.csdn.net/junruitian/article/details/79955863
+
+应用Clark-Wilson Model的两种规则：
+
+* Certification rules
+
+  CR1: When any IVP is run, it must ensure all CDIs are in a valid state.
+
+  CR2: For some CDIs, a TP must transform those CDIs in a valid state to a valid state.
+
+  CR3: The allowed relations must meet the requirements imposed by the principle of separation of duty
+
+  CR4:  All TPs must append enough information to reconstruct the operation to an append-only CDI
+
+  CR5: Any TP that takes as input a UDI may perform only valid transformations, or no transformations, for all possible values of the UDI. The transformation either rejects the UDI or transforms it into a CDI.
+
+* Enforcement rules
+
+  ER1: The system must maintain the certified relations and ensure that only TPs certified to run on a CDI manipulate that CDI.
+
+  ER2: The system must associate a user with each TP and a set of CDIs. The TP may **access** those CDIs on behalf of the associated user. The TP cannot access that CDI on behalf of a user not associated with that TP and CDI.
+
+  ER3: The system must authenticate each user attempting to execute a TP.
+
+  ER4:  Only the certifier of a TP may change the list of entities associated with that TP. No certifier of a TP, or any entity associated with that TP, may ever have “execute“ permission with respect to that entity.
+
+### 9.2 Chinese Wall Model
+
+ref. https://blog.csdn.net/qq_38626043/article/details/114645674
+
+主要功能：消除利益冲突，防范信息外泄
+
+每个object都有一个label表示它的origin，eg.  “Pepsi Ltd.”, “Coca-Cola Co.” “Microsoft Audit”, “Microsoft Investments”
+
+originator定义了标签的“冲突集”。eg.  {“Pepsi Ltd.”, “Coca-Cola Co.”} and {“Microsoft Audit”, “Microsoft Investments”}
+
+**Rules：**
+
+访问客体的控制：
+
+* 与主体曾经访问过的信息属于同一公司数据集合的信息，即墙内信息可以访问。
+* 属于一个完全不同的兴趣冲突组的可以访问。
+
+主体能够对一个客体进行写的前提，是主体未对任何属于其他公司数据集的访问。
+
+* 定理1：一个主体一旦访问过一个客体，则该主体只能访问位于同一公司数据集的客体或在不同兴趣组的客体
+* 定理2：在一个兴趣冲突组中，一个主体最多只能访问一个公司数据集
+
+Chinese Wall安全策略主要包括三大信息存储模块：
+
+某家企业的单位信息（C）
+该家企业的所有信息集合（Company Data，CD）；
+该家企业与互为竞争关系企业的全部信息集合（Conflict of Interest，COI ）。
+该模型规定
+每个C只能唯一对应一个CD；
+每个CD只能唯一对应一个利益冲突类COI；
+一个COI类却可以同时包含多个CD。
+
+### 9.3 SWIFT
+
+Assets = Liabilities负债 + Equity股权
+
+Separation of Responsibility：让不同的人统计收入和支出
+
+因为最开始的银行用电报传递信息，电报消息是由中间操作员传递的，因此消息很容易受到操纵。银行使用了一种称为test keys的基本哈希函数来确保消息的完整性。
+
+![test-key](image/test-key.png)
+
+但是不能抵抗CPA，test keys缺乏对双重控制的支持和对密码分析的脆弱性，促使人们改用SWIFT。
+
+**SWIFT**
+
+本质上是一个具有内置加密、身份验证和不可拒绝验证的电子邮件系统
+
+![swift](image/swift.png)
+
+Non-repudiation不可否认性：
+
+银行将消息发送到他们的RGP，RGP记录消息，并将消息转发到swift。swift记录这个消息并转发给接受者的RGP，接受者的RGP在分发前记录这个消息。
+
+银行如果想否认这笔交易，将不得不与两个rdp(通常在不同国家)和SWIFT串通
+
+### 9.4 ATMs
+
+Automatic Teller Machines (aka Cash Machines)
+
+Each ATM card has a PAN and expiration date, PIN encrypts the PAN
+
+Dual Control：在HSM（hardware security module）中完成的明文密码和密钥的操作；卡和PIN通过单独渠道发送给客户；ATM终端主密钥分割，由两名银行官员提供；离线PIN验证，PIN密钥KP用终端主密钥加密，从银行发送到ATM；在线PIN验证，PIN使用终端主密钥加密并发送到银行；为了接受其他银行的卡，PIN使用终端主密钥加密并发送到银行，然后由HSM使用与网络共享的密钥重新加密。
+
+## Lecture 10 Economics, other factors, and wrapup
+
+这一节和ppesp内容挺像
+
+### 10.1 Cyberwar
+
+不重要，介绍了点网络战争的事件和辩论。
+
+### 10.2 Economics
+
+经济学模型：
+
+* 分析模型：对代理人的行为提出合理的假设，然后研究其含义。适用于个人行为的理论分析，When models disagree, ground truth is elusive
+
+* 经验模型：在总体上观察关系，而不解释潜在的个人决定。基本的真相是可以实现的，但这些可能过于简化，不能解释潜在的机制
+
+* 测量模型：收集数据来比较分析模型的预测偏差。直接将实证分析应用于分析模型通常不可行。能提供反馈。
+
+**Rational choice axioms**
+
+Notation 
+
+• o1 ≻ o2: the agent is strictly prefers o1 to o2.
+
+• o1 ≽ o2: the agent weakly prefers o1 to o2;
+
+• o1 ∼ o2: the agent is indifferent between o1 and o2; 
+
+前提假设：理性选择理论假设人们对结果的偏好是一致的。
+
+**Completeness**：For each pair of outcomes o1 and o2, exactly one of the following holds: o1 ≻ o2, o1 ∼ o2, or o2 ≻ o1. 也就是结果是可比的。
+
+**Transitivity**. For each triple of outcomes o1, o2, and o3, if o1 ≻ o2 and o2 ≻o3, then o1 ≻o3. 结果可传递
+
+**平衡confidentiality 和availability**
+
+Outcomes O
+
+• c⊕: mechanism achieving high confidentiality 
+
+• c⊖: mechanism achieving low confidentiality
+
+• a⊕: mechanism achieving high availability
+
+• a⊖: mechanism achieving low availability 
+
+Indifferent: (c⊕, a⊖) ∼ (c⊖, a⊕). 
+
+为了比较上述这些，需要用具体数值。
+
+A **utility function** U maps a set of outcomes onto real-valued numbers, that is, U : O → *R*. U is defined such that U(o1) > U(o2) <====> o1 ≻ o2 . 
+
+eg. 两种utility函数：U(o1, o2) = u · o1 + v · o2；U(o1, o2) = min{u · o1, v · o2} 
+
+存在缺陷：人们采取的行动很少直接决定结果。相反，不确定的是会出现什么样的结果更现实的模型:agent从所有可能的动作a中选择动作a，然后结果O与概率分布相关联
+
+### 10.3 Risk Management
+
+Risk acceptance：以下情况风险是可接受的：最坏情况下的损失很小，足以用收益或准备金来支付；发生的概率比威胁组织生存的其他商业风险要小
+
+Risk mitigation： reduce the probability and severity of a loss 
+
+Risk avoidance：然而，与其使用技术，不如放弃有风险的活动。这就引入了失去业务的机会成本
+
+Risk transfer：买保险
+
+eg. Credit card issuers regularly manage fraud 
+
+•Risk acceptance: fraud is paid from the payment fees charged to merchants
+
+•Risk mitigation: install anti-fraud technology (raises costs of security)
+
+•Risk avoidance: downgrade high-risk cardholders to debit or require online verification (leads to lost business)
+
+•Risk transfer: structure consumer credit risk and sell it on the market 
