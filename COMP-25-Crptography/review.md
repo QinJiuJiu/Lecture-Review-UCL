@@ -311,7 +311,7 @@ OTP with PRG扩展到加密不定长的m：先用前面提到的expansion factor
 
 * **Perfect secrecy/indistinguishibility**
 
-  从定义上证明，有两种方法：
+  从<u>定义</u>上证明，有两种方法：
 
   1. 证明任意两个明文输出相同密文的概率是相同的（这种情况下一般是可以直接计算出两个概率的，直接对比数值）
 
@@ -325,7 +325,7 @@ OTP with PRG扩展到加密不定长的m：先用前面提到的expansion factor
 
      ![Perfect Indistinguishability](image/Perfect Indistinguishability.png)
 
-  从性质上证明，所有Perfect Secrecy都具有以下性质：
+  从<u>性质</u>上证明，所有Perfect Secrecy都具有以下性质：
 
   ![OTP cannot with shorter keys](image/OTP cannot with shorter keys.png)
 
@@ -371,3 +371,503 @@ OTP with PRG扩展到加密不定长的m：先用前面提到的expansion factor
 
 ****
 
+#### 3.1 PRG PRF PRP
+
+**From Pseudorandom Generators (PRGs) to Pseudorandom Functions (PRFs)**
+
+![PRF](image/PRF.png)
+
+但是一个random function的描述需要指数级别的$\lambda$来描述，没有PPT算法能描述。所以构建一个oracle access，D将x发送给f，f进行查表返回f(x)。
+
+**Pseudorandom Functions (PRFs)**
+
+> 课本p53-p54
+
+![PRF def](image/PRF def.png)
+
+f是一个random chosen function，有$2^{\lambda \cdot 2^\lambda}$中可能性
+
+F is hard to invert，有$2^\lambda$种可能性
+
+目标就是让PPT算力的攻击者A区分不出这两种随机函数生成结果。
+
+**<span style='color:blue;'>Goals</span>** use a PRG to construct a PRF
+
+![construct PRF](image/construct PRF.png)
+
+【这边其实已经有点能看出分块加密的性质了】
+
+**Chosen-Plaintext Attack (CPA) Indistinguishability Security Game**
+
+![CPA](image/CPA.png)
+
+当Enc是随机的时候，oracle access能保证随机性。
+
+**Indistinguisability against Chosen-Plaintext Attacks (IND-CPA)**
+
+![IND-CPA](image/IND-CPA.png)
+
+IND-CPA是加密模型应该满足的最基本的性质；IND-CPA包含IND-KPA；$PrivK^{eav}$是$PrivK^{cpa}$的一种特殊情况，即A没有使用oracle access。
+
+IND-CPA security is **not** achievable if Enc is deterministic：因为如果Enc确定，那么输入m能得到固定的c，A就能比较m和m0以及m1知道b的值了。
+
+**<span style='color:red;'>因此，必须要把随机性作为加密过程的一部分，来确保相同消息的加密可能是不同的。</span>**
+
+**Building IND-CPA Secure Symmetric Encryption Schemes: OTP with PRF**
+
+deterministic OTP with PRG is not IND-CPA. 因为不能抵御multi的攻击。
+
+![OTP with PRF](image/OTP with PRF.png)
+
+**证明OTP with PRF是IND-CPA的**
+
+![proof OTP with PRF is IND-CPA](image/proof OTP with PRF is IND-CPA.png)
+
+![proof OTP with PRF is IND-CPA 2](image/proof OTP with PRF is IND-CPA 2.png)
+
+关于上面Then后第二条的信息补充：
+
+![proof OTP with PRF is IND-CPA 3](/Users/zyt/Documents/zyt-uk/term1/comp25-cryptography/notes/image/proof OTP with PRF is IND-CPA 3.png)
+
+**OTP with PRF for Variable-Length Messages**
+
+不可取，这种情况下密文起码是明文的两倍长了。因为每个大小为$\lambda$的分组都是用一个$\lambda$的字符串来加密的，这个字符串还必须作为密文的一部分。
+
+**Pseudorandom Permutations (PRPs)**
+
+![PRP](image/PRP.png)
+
+#### 3.2 Modes of operations: ECB, CBC, OFB, CTR
+
+所有block ciphers都是PRP；block cipher不是full encryption scheme因为只分块加密。
+
+**Electronic Code Book (ECB) Mode**
+
+![ECB](image/ECB.png)
+
+ECB是deterministic的，所以不是IND-EAV也不是IND-CPA，不应该被使用。
+
+k是固定的。
+
+**Cipher Block Chaining (CBC) Mode**
+
+![CBC](image/CBC.png)
+
+解密可以并行操作，因为所有ci都有。
+
+CBC is IND-CPA secure if *F* is a PRP and a new random IV is chosen for every new message.
+
+**Output Feedback (OFB) Mode**
+
+![OFB](image/OFB.png)
+
+不能并行操作，但是每个$F_{k}^{i}(IV)$都可以提前计算好进行加密解密
+
+OFB is IND-CPA secure if *F* is a PRF and a new random IV is chosen for every new message.
+
+**Counter (CTR) Mode**
+
+![CTR](image/CTR.png)
+
+每个块都是并行加密和解密的；时间复杂度小。
+
+CTR is IND-CPA secure if *F* is a PRF and a new random IV is chosen for every new message. 
+
+#### 3.3 Block Ciphers: DES, 3DES, AES
+
+**Common Approaches to Build Block Ciphers**
+
+* Feistel Networks (*e.g.*, DES, 3DES)
+
+* Substitution Permutation Networks (*e.g.*, AES)
+
+**Feistel Networks**
+
+无论fi怎么构造，Feistel都是可逆的。
+
+![feistel network](image/feistel network.png)
+
+**PRP Construction using Feistel Networks**
+
+![PRP feistel network](image/PRP feistel network.png)
+
+也就是对Ri进行计算的函数fi变成PRF（不需要PRP的原因是：无论fi怎么构造，Feistel都是可逆的。）
+
+**Data Encryption Standard (DES)**
+
+![DES1](image/DES1.png)
+
+ **Substitution Boxes**
+
+映射6bit(b0,...,b5)到8bit，行用b0和b5表示，其余四位表示列，这样能在映射表里对应出8个bit。
+
+<u>优点**Avalanche Effffect**（雪崩效应）：6bit中只要改变一个bit就会导致结果起码有2个bit的改变，再结合后续的E和P就能在改变1bit的基础上造成起码一半的输出bit被改变。</u>
+
+**DES Key Schedule**
+
+56bit的key，8bit忽略，其余48bit重排列生成ki
+
+DES的安全性并不是很好，所以进行了以下尝试：
+
+**Increasing the Key Length of a Block Cipher**
+
+Double Encryption：不可取，可以被 **Meet-in-the-Middle Attack**破解
+
+![DES double enc](image/DES double enc.png)
+
+攻击者分别计算这两个值，然后对比，时间复杂度和一次加密一样。
+
+**Triple Encryption**
+
+暴力破解需要$O(2^{3\lambda})$，Meet-in-the-Middle Attack仍然可以奏效但是复杂度是$O(2^{2\lambda})$
+
+![DES Triple enc](image/DES Triple enc.png)
+
+**Confusion-Diffffusion Paradigm**
+
+混淆：每个密文位都应该依赖于多个密钥位。为了隐藏密钥和密文之间的关系。
+
+扩散：在明文中翻转一bit大约是翻转密文中一半的bit。目的是隐藏明文和密文之间的关系。
+
+要满足雪崩效应。
+
+**Substitution-Permutation (SPN) Networks**
+
+满足了Confusion-Diffffusion
+
+![SPN](image/SPN.png)
+
+**Advanced Encryption Standard (AES)**
+
+![AES](image/AES.png)
+
+SubBytes：用一个S盒完成分组的字节到字节的代替。满足confusion
+
+ShiftRows：Cyclic left shift *i*th row by *i* positions for 0 *≤* *i* *≤* 3.和MixColumns一起提供confusion。
+
+MixColumns：利用域GF(28)上的算术特性的一个代替。
+
+AddRoundKey：当前分组和扩展密钥的一部分进行按位异或XOR。
+
+**AES Key Schedule**：AES的轮数取决于密钥长度。
+
+**Security of AES**：是安全的并仍在使用。Most widely used: AES-128. Recommended: AES-256
+
+#### 3.4 Stream Ciphers: RC4, ChaCha20
+
+每次加密都通过密钥生成一个密钥流，解密也是使用同一个密钥流，明文与同样长度的密钥流进行异或运算得到密文。
+
+**RC4**
+
+Key-scheduling algorithm (KSA): initalize state
+
+Pseudorandom generation algorithm (PRGA): produce keystream
+
+![RC4](image/RC4.png)
+
+RC4生成key stream并不是完全随机的，不安全，现在不用了。
+
+**ChaCha20**
+
+替代了RC4
+
+![chacha20](image/chacha20.png)
+
+**ChaCha20: Quarterround**
+
+![quarterround](image/quarterround.png)
+
+**ChaCha20: Doubleround**
+
+![doubleround](image/doubleround.png)
+
+****
+
+#### 解题思路
+
+* **Pseudorandom Functions (PRFs)**
+
+  **证明是PRF**
+
+  1. 用反证法。如果不是PRF那么原来构造它的PRF也不是PRF了。
+
+     ![q3-6](image/q3-6.png)
+
+     ![q3-7](image/q3-7.png)
+
+  2. 就根据定义硬证（这个证明方法略显迷惑
+
+     ![q3-8](image/q3-8.png)
+
+     ![q3-9](image/q3-9.png)
+
+  **证明不是PRF**
+
+  构造反例和D have access to oracle，给一对输入，让函数输出的概率不是negl，同时说明真正的PRF给定这个输入的输出是negl。<u>反例最好根据给定函数的计算特性来构造。</u>
+
+  例子1:
+
+  ![q3-1](image/q3-1.png)
+
+  这题用到了||所以构造x和y的时候可以考虑到||的特性
+
+  ![q3-2](image/q3-2.png)
+
+  ![q3-3](image/q3-3.png)
+
+  例子2:
+
+  ![q3-4](image/q3-4.png)
+
+  这题有异或，构造的时候可以用异或的特性消除掉输入值
+
+  ![q3-5](image/q3-5.png)
+
+* **Indistinguisability against Chosen-Plaintext Attacks (IND-CPA)**
+
+  证明是IND-CPA的：OTP with PRF的例子，就是用定义证【目前没看见反正法】
+
+  证明不是IND-CPA的：A能根据输出结果判断输入是哪一个
+
+  例子1：
+
+  ![q3-12](image/q3-12.png)
+
+  ![q3-13](image/q3-13.png)
+
+  例子2：
+
+  ![q3-10](image/q3-10.png)
+
+  ![q3-11](image/q3-11.png)
+
+* **IND-EAV**
+
+  证明是IND-EAV的：直接根据随机数生成性质证明（eg. PRP输出是随机的）
+
+  证明不是IND-EAV的：
+
+  例子：
+
+  ![q3-14](image/q3-14.png)
+
+  ![q3-15](image/q3-15.png)
+
+* IND-EAV和IND-CPA的证明区别
+
+  ![q3-16](image/q3-16.png)
+
+  ![q3-17](image/q3-17.png)
+
+### Lecture 4 Hash Functions
+
+#### 4.1 Hash Functions
+
+**Hash Functions**：OWF将任意大小输入m压缩成一个短的、固定长度的输出h。
+
+**Collision Resistant Hash Functions (CRHF)**
+
+![CRHF](image/CRHF.png)
+
+和PRF的区别：key s不需要是随机的。
+
+重点：攻击者A无法在PPT时间范围内找到$x\neq y$满足$H(x)=H(y)$
+
+**Weaker collision resistance**
+
+![weaker cr](image/weaker cr.png)
+
+三个CR类型：
+
+* CR：攻击者A无法在PPT时间范围内找到$x\neq y$满足$H(x)=H(y)$
+
+* PR1：给定h，无法找到x满足H(x)=h
+
+* PR2：给定h=H(x)，无法找到y满足H(y)=h
+
+![3CR](image/3CR.png)
+
+是CR就一定是PR2；是PR2，就是PR1
+
+集合范围：CR < PR2 < PR1
+
+**CRHF的应用**
+
+* 密码和软件合法性校验
+* 比较两个文件内容一致性
+
+**Finding Collisions**
+
+可以找到collision，即使输入相同长度的情况下找不到collision，也能在不同长度的输入中找到collision。这种方法是暴力破解，算法复杂度太高了。
+
+因此考虑到了**Birthday Attacks**
+
+![birthday attack](image/birthday attack.png)
+
+****
+
+下面都是证明birthday attack为什么能缩小寻找collision的时间复杂度
+
+**Upper Bound for Collision Probability**
+
+![upper bound of collision](image/upper bound of collision.png)
+
+用birthday attack的原理：总人数是q，生日的可能性有N个，也就是计算在q中任意取两个人的生日相同的概率。
+
+**Lower Bound for Collision Probability**
+
+![lower bound of collision](image/lower bound of collision.png)
+
+![birthday attack impact](image/birthday attack impact.png)
+
+影响重点：时间复杂度减小了；**但是这个攻击只对CR有效，对PR1和PR2无效**。
+
+****
+
+#### 4.2 Modes
+
+**Random Oracle Model (ROM)**
+
+**Random Oracle**：输入m，输出一个l bit的随机字符串s。是infinite object，不能通过PPT算法公开计算。要获得R(m)，必须输入m查询输出R(m)。输出是不可预测的，而且是均匀分布的。
+
+**Hash Functions as Random Oracles**：Distributions of *R*(·) and *H*(·) are *computationally indistinguishable*.
+
+![hash function history](image/hash function history.png)
+
+注意一下图上的broken-secure分界线。
+
+**Merkle-Damg˚ard Transformation（MD创建hash函数）**
+
+![MD](image/MD.png)
+
+把n bit串分成b个长度为l的块，最后一块长度不够就补齐。
+
+**Security of MD Transformation**
+
+If *f* is a fixed-length collision-resistant compression function, then *H* built by MD transform is a CRHF.
+
+反证法：假设H不是CRHF，证明这种情况下能找到f的collision例子。
+
+![security of MD](image/security of MD.png)
+
+**Length Extension Attacks on the MD Transformation**
+
+长度扩展攻击允许任何人在末尾包含额外信息消息并在不知道秘密的情况下产生有效的散列。虽然攻击者不知道原始m，但是只要知道原始m的长度，就可以通过尝试使用各种假定长度的伪造m来确定，并检查哪个长度能够使H(m)相同。
+
+![length extention attack](image/length extention attack.png)
+
+抵御这种攻击：添加一些后处理步骤，例如，一些混合或最终压缩。
+
+MD4/5, SHA0/1/2 都容易收到这种攻击。SHA3 and BLAKE∗可以抵御这种攻击。
+
+**Build Hash Functions from Block Ciphers**
+
+第一种：**Compression Function from Block Ciphers (First Attempt)**
+
+![hash block cipher 1](image/hash block cipher 1.png)
+
+‼️证明不是CR：直接构建$m\neq m'$使得$H(m)=H(m')$
+
+而且上述函数计算是可逆的。
+
+第二种：**Compression Function from Block Ciphers (Better Approach)**
+
+![hash block cipher 2](image/hash block cipher 2.png)
+
+这里函数计算就不可逆了，有12种组合都是安全的。
+
+**Davies-Meyer Compression Function**
+
+![DM](image/DM.png)
+
+**Compression Functions: Collision Resistance**
+
+![CFCR](image/CFCR.png)
+
+**证明DM Compression Functions 是 Collision Resistance**
+
+![proof DM CR](image/proof DM CR.png)
+
+> TODO【没太看懂这个证明，先放一会】
+
+**Hash Functions from Practical Block Ciphers**
+
+SHA-1不安全，但是git还在用
+
+**SHA-3** 是 Keccak proposal
+
+**Keccak’s Sponge Construction**
+
+![keccak sponge construct](image/keccak sponge construct.png)
+
+和哈希函数不同：输出是任意值
+
+r：用于吸收和提取bit string
+
+c：安全参数
+
+通过使用b=r+c的b-bit排列f来转换状态
+
+**Keccak’s Permutation**
+
+![keccak permutation](image/keccak permutation.png)
+
+**Security of Keccak**： 能抵抗length extention attack，因为c不会被输出
+
+**Hash Iterative Framework (HAIFA)**
+
+![HAIFA](image/HAIFA.png)
+
+用来解决MD transforamtion能够被length extention attack攻击的缺点，也就是不把输出结果给出，增加salt无法获取输出。
+
+**BLAKE Hash Function Family**：Based on HAIFA mode and ChaCha-like compression function
+
+#### 解题思路
+
+* 证明collision resistant
+
+  是collision resistant：反证法
+
+  例子：
+
+  ![q4-1](image/q4-1.png)
+
+  ![q4-2](image/q4-2.png)
+
+  ![q4-3](image/q4-3.png)
+
+  不是collision resistant：构造反例，注意**hash function输出的长度是固定的**
+
+  例子1：
+
+  ![q4-4](image/q4-4.png)
+
+  ![q4-5](image/q4-5.png)
+
+  例子2:
+
+  ![q4-6](image/q4-6.png)
+
+* 证明PR1
+
+* 证明PR2
+
+下面这俩感觉应该放到Lecture2的作业里
+
+* 证明OWF：是OWF用反证法，反向计算的pr大于negl
+
+  ![q4-7](image/q4-7.png)
+
+  ![q4-8](image/q4-8.png)
+
+* 证明hard-core predict：是HCP用反证法
+
+  ![q4-9](image/q4-9.png)
+
+  
+
+  
+
+  
+
+  
