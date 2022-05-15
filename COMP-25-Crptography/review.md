@@ -1100,3 +1100,188 @@ EUF-CMA security game不受replay attack影响，因为要求m是不同的。但
 
 ****
 
+### Lecture 6 Number Theory, Group Theory, and Computationally Hard Problems
+
+**<span style='color:blue;'>Goals</span>：** Can we build one-way functions from computationally hard problems?
+
+这一节课确定如何找到OWF
+
+#### 6.1 Number theory
+
+Number Sets
+
+![number sets](image/number sets.png)
+
+**Primes and Composites** 质数和合数
+
+![prime theory](image/prime theory.png)
+
+任何数都可以用质数相乘的形式表示
+
+**Divisibility** 整除
+
+![divisibility](image/divisibility.png)
+
+**Division with Remainder and the Modulo Operator** 余数和模
+
+![modulo](image/modulo.png)
+
+**Greatest Common Divisor**（GCD，最大公因数） d = gcd(a, b)
+
+**Computing GCD: The Extended Euclidean Algorithm** 扩展欧几里得算法
+
+![compute GCD](image/compute GCD.png)
+
+![compute GCD example](image/compute GCD example.png)
+
+‼️x-yq：q是当前行的，x，y是下一行的
+
+**Congruence Relationship for Modulo Operator** 同余
+
+![congruence relationship](image/congruence relationship.png)
+
+同余的一些性质：
+
+![congruence relationship 1](image/congruence relationship 1.png)
+
+ **modular multiplicative inverses** 乘法模逆元
+
+![multiple inverse modulo](image/multiple inverse modulo.png)
+
+**Theorem** An integer *a* is invertible modulo *n* if and only if gcd(a,n) = 1.
+
+**Computing Modular Inverses**
+
+![compute inverse multiple](image/compute inverse multiple.png)
+
+![compute inverse multiple example](image/compute inverse multiple example.png)
+
+**Modular Exponentiation: Square-and-Multiply**
+
+计算$a^b \ mod \ n$
+
+![square and multiply](image/square and multiply.png)
+
+**Euler’s Phi Function** 这个在RSA算法里被用到
+
+![phi function](image/phi function.png)
+
+先把n变成质数相乘，然后再计算。
+
+⚠️remark里的第三条性质非常重要，是RSA原理的重要依据
+
+**Euler’s Theorem and Fermat’s Little Theorem**
+
+![euler theorem](image/euler theorem.png)
+
+#### 6.2 Group Theory
+
+**Binary Operators** 相当于一种定义关系，比如加法，乘法，多边形等等
+
+![binary operators](image/binary operators.png)
+
+**Groups**
+
+![groups](image/groups.png)
+
+**Group** $Z_n$
+
+![group zn](image/group zn.png)
+
+**Group** $Z^*_n$
+
+![group zn*](image/group zn*.png)
+
+**Order of a Group Element**
+
+![order of group](image/order of group.png)
+
+**Exponentiation with Group Order**
+
+![exp order](image/exp order.png)
+
+**Cyclic Groups and Generators**
+
+![cyclic group](image/cyclic group.png)
+
+cyclic 和 non-cyclic group的例子：
+
+![cyclic and non-cyclic group](image/cyclic and non-cyclic group.png)
+
+可以根据generator计算出整个group的值
+
+**Groups of Prime Order are Cyclic**
+
+![prime order](image/prime order.png)
+
+**Finding Generators of Cyclic Groups**
+
+![find generator](image/find generator.png)
+
+generator的计算结果不能有neutral element（注意Zn的ne=0，Zn*的ne=1）
+
+所以上面的例子a=6时，i=2的情况下计算出1了，所以6不是generator
+
+**Number of Generators in Cyclic Groups**
+
+![number of generator](image/number of generator.png)
+
+**Subgroups**
+
+![subgroup](image/subgroup.png)
+
+subgroup的一些性质：
+
+![subgroup properties](image/subgroup properties.png)
+
+#### 6.3 Computationally Hard Problems
+
+**Integer Factorization Problem**（IFP）：整数因式分解。小的数字很好分解，但是大的数字就困难了。
+
+现存的算法都需要指数时间复杂度
+
+**Discrete Logarithms and the Discrete Logarithm Problem**
+
+![DLP](image/DLP.png)
+
+和前一个算法一样，需要指数复杂度。
+
+#### 解题思路
+
+* 各种计算mod的值
+
+  * 直接计算
+
+  * 拆分成a+b解
+
+  * 找到规律$a^i=1 \ mod \ n $或者$a^i=a \ mod \ n $
+
+  * 用群论order的性质
+
+    ![exp order](image/exp order.png)
+
+    例子：
+
+    ![q6-1](image/q6-1.png)
+
+* 乘法逆元的计算【需要注意的是计算y的时候‼️x-yq：q是当前行的，x，y是下一行的】
+
+* 计算order
+
+  ![order of group](image/order of group.png)
+
+* subgroup
+
+  Lagrange's Theorem: 先计算group order的公因数，这些都可能是subgroup的order。
+
+  ![subgroup properties](image/subgroup properties.png)
+
+  例子：
+
+  ![q6-2](image/q6-2.png)
+
+  ![q6-3](image/q6-3.png)
+
+* 中国剩余定理
+
+  ![chinese remainder theorem](image/chinese remainder theorem.png)
