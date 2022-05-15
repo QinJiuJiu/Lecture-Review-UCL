@@ -864,10 +864,239 @@ c：安全参数
 
   ![q4-9](image/q4-9.png)
 
-  
 
-  
+### Lecture 5 Message Authentication Codes
 
-  
+**<span style='color:blue;'>Goals</span>**：前文的攻击者只能观察密文，选择明文。这一节的攻击者可以直接交互修改密文的内容，因此需要的传输的消息内容进行验证。
 
-  
+加密算法不能保证信息的完整性：
+
+* **One-Time Pad with PRF**
+
+  ![integrity attack OTP PRF](image/integrity attack OTP PRF.png)
+
+*  **CBC Mode**
+
+  ![integrity attack CBC](image/integrity attack CBC.png)
+
+*  **OFB Mode**
+
+  跟上面差不多原理
+
+* **CTR Mode**
+
+  跟上面差不多原理
+
+**Message Authentication Codes**
+
+![MAC](image/MAC.png)
+
+**Chosen-Message Attacks**：攻击者构造一个message pair(m,t)使得Verify(k,m,t)=1，且m是一个新的message。
+
+**existential unforgeability under chosen-message attacks(EUF-CMA)**
+
+![EUF-CMA](image/EUF-CMA.png)
+
+A可以访问Tag和Verify oracle；Q是A能从oracle获取的所有message-tag对。
+
+Tag的必须要有足够的长度，否则就可以被A暴力破解。
+
+#### 5.1 MACs - constructed from PRFs and block ciphers
+
+**MAC with PRF**
+
+![MAC with PRF](image/MAC with PRF.png)
+
+这个是一个固定长度的MAC。
+
+定理：‼️**如果$F_k$是PRF，那么这个MAC with PRF就是EUF-CMA secure的。**
+
+Proof：反证法。假设MAC不安全，那么$F_k$就不是PRF。
+
+但是下面这个证明是构造相似模型，用定义证明的。
+
+![proof MAC with PRF secure](image/proof MAC with PRF secure.png)
+
+**Use fixed-length MAC with PRF to process arbitrary long messages**
+
+不可取。PPT给了三种构造方案都是不行的。因为消息块必须被链接，以防止其替换或重新排序，并且必须考虑消息长度，以防止消息块删除攻击。
+
+**Secure Variable-Length MAC**
+
+![secure variable length MAC](image/secure variable length MAC.png)
+
+如果tag同样长度的消息m用相同的r，攻击者可以构造(m,t)对替换掉原始的。
+
+如果tag同样长度的消息m用不同的r，攻击难度和攻击fixed-length MAC一样。
+
+这个扩展并不efficient，因为要分组加密4l次，MAC标记长度也很长 *|**m**|* = *l* *·* *λ* bits implies *|**t**|* = (4*l* + 1*/*4) *·* *λ* bits.。
+
+**<span style='color:blue;'>Goals</span>：** 构造更有效的Variable-Length MAC
+
+**CBC-MAC**
+
+![CBC-MAC](image/CBC-MAC.png)
+
+当n是固定的情况下，这个模型才是EUF-CMA secure的，否则攻击者可以往后面继续加新的block。
+
+**Efficiency** 最佳 tag length *|**t**|* = *λ* and requires only one call to *$F_k$* per *$m_i$*.
+
+**Secure CBC-MAC Extensions**
+
+* 对每个可能的消息长度使用不同的key
+* 预先考虑m的总长度l并在第一个block中处理
+* 设置两个k，只有最后一个块用另一个key加密，这样l就不需要预先知道了
+
+#### 5.2 MACs - constructed from hash functions
+
+**MACs and Hash Functions**
+
+MD创建的hash函数末尾一般都会继续补上一个长度n的块，这样可以防止攻击者在后面继续创建块。这种情况下创建的MAC就不会被攻击者用extention length attack攻击了。
+
+**Nested MAC (NMAC)**
+
+![NMAC](image/NMAC.png)
+
+**Security of NMAC**
+
+定理：‼️If *f* is collision-resistant and acts like a EUF-CMA-secure fixed-length MAC, then NMAC is EUF-CMA secure.
+
+证明：反证法。假设NMAC不安全，那么要么f不是CR，要么f不是固定长度的MAC
+
+![proof NMAC](image/proof NMAC.png)
+
+Case1: CR的特性
+
+Case2: fixed-length MAC特性，也就是攻击者不能伪造出。
+
+**Hash-based Message Authentication Code (HMAC)**
+
+因为NMAC的IV需要修改，在实际应用中会比较复杂。HMAC让compression function和hash function使用不同的密钥。而且这两个密钥归根结底是同一个密钥k。
+
+【对比这个图和NMAC的图】
+
+![HMAC](image/HMAC.png)
+
+HMAC是NMAC的一个特例。
+
+![special case NMAC - HMAC](image/special case NMAC - HMAC.png)
+
+HMAC的应用：HMAC-SHA1
+
+#### 5.3 Ciphertext integrity
+
+IND-CPA确保的是加密而不是message integrity，所以需要改进。
+
+**Chosen-Ciphertext Attacks (CCA)**：在实践中，A可以发送一些密文ci给Bob，Bob解密给mi，然后发送给Alice。这种情况可能会发生很多次。即使A在攻击期间的任何时候获得其选择的任何密文ci的明文mi，加密消息mb的不可区分性也应该成立。
+
+**IND-CCA Security for Private-Key Encryption**
+
+![IND-CCA](image/IND-CCA.png)
+
+‼️**Theorem** Any IND-CCA secure encryption scheme is also IND-CPA secure.
+
+攻击者能够攻击IND-CPA那么也能攻击IND-CCA。
+
+证明：构造相似模型，用定义证明。
+
+![IND-CCA implies IND-CPA](image/IND-CCA implies IND-CPA.png)
+
+**Theorem** 是IND-CPA security 不一定是IND-CCA security.
+
+攻击者能够攻击IND-CCA不一定能攻击IND-CPA。
+
+证明：构造反例。
+
+![IND-CPA not implies IND-CCA](image/IND-CPA not implies IND-CCA.png)
+
+![sketch5](image/sketch5.jpeg)
+
+**Authenticated Encryption: Encrypt-then-MAC**
+
+![encrypt then mac](image/encrypt then mac.png)
+
+⚠️只有这个是安全的， Encrypt-and-MAC and MAC-then-Encrypt都是不安全的
+
+**Theorem** If SE is IND-CPA secure and MAC is EUF-CMA secure, then the authenticated encryption scheme AE is IND-CCA secure.
+
+证明：假设AE是不安全的，那么SE或MAC是不安全的。
+
+* 假设AE是不安全的，证明MAC是不安全的。
+
+  ![MAC not secure](image/MAC not secure.png)
+
+* 假设AE是不安全的，证明SE是不安全的。
+
+  ![SE not secure](image/SE not secure.png)
+
+**Polynomial-based MAC: GHASH**
+
+![GHASH](image/GHASH.png)
+
+**Authenticated Ciphers: AES-GCM** 基于GHASH的
+
+Galois Counter Mode (GCM)：authenticated encryption mode based on the Encrypt-then-MAC paradigm.
+
+![AES-GCM](image/AES-GCM.png)
+
+**Polynomial-based MAC: Poly1305**
+
+![poly1305](image/poly1305.png)
+
+**Authenticated Ciphers: ChaCha20-Poly1305** 基于poly1305
+
+![chacha20-poly1305](image/chacha20-poly1305.png)
+
+**Replay Attacks**
+
+记录下A原先发送给B的(m,t)数据对，一段时间后重新发送给B。
+
+EUF-CMA security game不受replay attack影响，因为要求m是不同的。但是MAC本身容易收到replay attack攻击。如果与其他机制相结合，mac可以抵御replay attack。
+
+**Using MACs to Protect Against Replay Attacks**
+
+两个机制：
+
+* **Session Identififiers**：双方同意使用一个唯一的会话标识符sid；计算标签*t* := Tag*k* (sid ||i||mi)，i是一个计数器，确保freshness。协议有时使用不同的计数器序列来区分双方的消息，例如，AB使用奇偶数。
+* **Timestamps**：*t* := Tag*k* (*s*||mi)，s是时间戳；只有当标记有效且所包含的时间戳在某个时间范围内时，双方才会接受消息。
+
+**MAC-based Authentication in Multi-User Settings**
+
+多人互相通信的情况。大家使用同一个key k时，不能区分消息是谁发的。
+
+解决方案：每两个人i和j通信，使用单独的keyij；用keyij计算tag。
+
+这种解决方案具有缺陷，因为人数很多的情况下，每个人需要存储n-1个key。
+
+#### 解题思路
+
+* 判断MAC是否secure
+
+  insecure：构造反例。
+
+  * 获取几个tag对，能够生成不包含这些tag对里的有效对 a.1, a.3
+  * 构造两个输入，生成的tag对是相同的 a.2
+  * 任意输入，输出都是相同的 a.4
+
+  例子：
+
+  ![q5-1](image/q5-1.png)
+
+  补充encryt和MAC的顺序：
+
+  ![3 encrypt MAC](image/3 encrypt MAC.png)
+
+  在TUTORIAL里有这三种加密认证方式的具体分析。再次强调只有第三种是安全的。⚠️在接收到消息时，最好先认证再执行其他操作，否则会忽略认证这一步骤。
+
+* IND-CCA & authentication
+
+  ![q5-2](image/q5-2.png)
+
+  ![q5-3](image/q5-3.jpeg)
+
+****
+
+上面这些全都是对称密码学的内容，后续的内容是非对称加密的也就是公私钥。
+
+****
+
